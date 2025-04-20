@@ -29,6 +29,27 @@ void random_centroids(double centroids[50][10], double data[100][100], int n, in
     }
 }
 
+double euclidean_distance(double *a, double *b, int dim) {
+    double distance = 0.0;
+    for (int i = 0; i < dim; i++) {
+        distance += pow(a[i] - b[i], 2);
+    }
+    return sqrt(distance);
+}
+
+int find_nearest_cluster(double *point, double centroids[K][DIM], int dim) {
+    int cluster = 0; 
+    double min_distance = euclidean_distance(point, centroids[0], dim); 
+    for (int i = 1; i < K; i++) 
+        double distance = euclidean_distance(point, centroids[i], dim); 
+        if (distance < min_distance) {
+            min_distance = distance;
+            cluster = i; 
+        }
+    }
+    return cluster;
+}
+
 int main(){
 	int n,K,Dim;
 	double centroids[50][10],data[100][100];
