@@ -1,0 +1,163 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <time.h>
+#include <stdbool.h>
+#include <float.h>
+#define MAX_ITER 100
+#define EPS 1e-6
+
+// Ham nhap so cum, so diem, so chieu va nhap toa do cac diem
+void nhap(double centroids[50][10], double point[100][10], int *n, int *K, int *Dim) {
+    printf("Nhap so cum (K): ");
+    scanf("%d", K);
+    printf("Nhap so chieu (DIM): ");
+    scanf("%d", Dim);
+    printf("Nhap so diem (N): ");
+    scanf("%d", n);
+
+    for (int i = 0; i < *n; i++) {
+        printf("Nhap diem %d (gom %d chieu): ", i + 1, *Dim);
+        for (int j = 0; j < *Dim; j++) {
+            scanf("%lf", &point[i][j]);
+        }
+    }
+}
+
+
+// Ham tinh khoang cach Euclidean
+double euclidean_distance(double *a, double *b, int Dim) {
+    double distance = 0.0;
+    for (int i = 0; i < Dim; i++) {
+        distance += pow(a[i] - b[i], 2);
+    }
+    return sqrt(distance);
+}
+
+// Ham khoi tao cac tam cum tu cac diem da nhap
+void random_centroids(double centroids[50][10], double point[100][10], int n, int K, int Dim) {
+    srand(time(NULL));
+    for (int i = 0; i < K; i++) {
+        int random_index = rand() % n;
+        for (int j = 0; j < Dim; j++) {
+            centroids[i][j] = point[random_index][j];
+        }
+    }
+}
+
+
+// Ham tim cum gan nhat cho mot diem
+int find_nearest_cluster(double *point, double centroids[50][10], int K, int Dim) {
+    int cluster = 0;
+    double min_distance = euclidean_distance(point, centroids[0], Dim);
+    printf("d[0] = %.2lf\n ",min_distance);
+    for (int i = 1; i < K; i++) {
+        double distance = euclidean_distance(point, centroids[i], Dim);
+        printf("d[%d] = %.2lf\n ", i, distance);
+        if (distance < min_distance) {
+            min_distance = distance;
+            cluster = i;
+        }
+    }
+    printf("min_dis = d[%d]", cluster);
+    return cluster;
+}
+// Ham kiem tra xem cac centroids co thay doi không
+bool centroids_changed(double old_centroids[50][10], double new_centroids[50][10], int K, int Dim) {
+    for (int i = 0; i < K; i++) {
+        if (euclidean_distance(old_centroids[i], new_centroids[i], Dim) > EPS) {
+            return true; //chua hoi tu
+        }
+    }
+    return false; //da hoi tu
+}
+
+// Ham sao chep centroids
+void copy_centroids(double dest[50][10], double src[50][10], int K, int Dim) {
+    for (int i = 0; i < K; i++) {
+        for (int j = 0; j < Dim; j++) {
+            dest[i][j] = src[i][j];
+        }
+    }
+}
+
+// Ham cap nhat tam cum
+void update_centroids(double centroids[50][10], double point[100][10], int labels[100], int K, int n, int Dim) {
+    int count[50] = {0};
+    double sum[50][10] = {0};
+    
+    // Tinh tong va so luong diem trong tung cum
+    for (int i = 0; i < n; i++) {
+        int cluster = labels[i];
+        count[cluster]++;
+        for (int j = 0; j < Dim; j++) {
+            sum[cluster][j] += point[i][j];
+        }
+    }
+    
+    // Cap nhat tam cum moi
+    for (int i = 0; i < K; i++) {
+        if (count[i] > 0) {
+            for (int j = 0; j < Dim; j++) {
+                centroids[i][j] = sum[i][j]/count[i];
+            }
+        }
+    }
+}
+
+int main() {
+    double point[100][10];  // Mang luu diem du lieu
+    double centroids[50][10]; // Mang luu tam cum
+    double old_centroids[50][10]; // Mang luu tam cum cu de so sanh
+    int labels[100];         // Mang luu nhan cum cua tung diem
+    int n, K, Dim;          // So diem, so cum, so chieu
+    bool converged = false;  // Bien kiem tra dieu kien dung
+    int iter_count = 0;  // Bien đem so vong lap
+
+    // Buoc 1: Nhap du lieu tu ban phim
+    nhap(centroids, point, &n, &K, &Dim);
+
+    // Buoc 2: Khoi tao tam cum ngau nhien
+    random_centroids(centroids, point, n, K, Dim);
+    printf("\n --- Cac tam cum ban dau ---\n ");
+    for (int i = 0; i < K; i++) {
+        printf("Cluster %d: (", i);
+        for (int j = 0; j < Dim; j++) {
+            printf("%.2f", centroids[i][j]);
+            if (j < Dim - 1) printf(", ");
+        }
+        printf(")\n ");
+    }
+
+    // Buoc 3: Thuat toan K-means
+    for (int iter = 0; iter < MAX_ITER && !converged; iter++) {
+        iter_count++;
+        printf("\n --- Vong lap %d ---\n ", iter_count);
+        
+        // Luu centroids cu de so sanh
+        copy_centroids(old_centroids, centroids, K, Dim);
+        printf("Nhan cum: \n\n ");
+        // Gan nhan cum cho tung diem
+        for (int i = 0; i < n; i++) {
+            labels[i] = find_nearest_cluster(point[i], centroids, K, Dim);
+            printf("\n Diem %d -> Cum %d\n\n ", i + 1, labels[i]);
+        }
+        
+        // Cap nhat tam cum
+        update_centroids(centroids, point, labels, K, n, Dim);
+        printf("\nCac tam cum: \n");
+        for (int i = 0; i < K; i++) {
+            printf("Cum %d: (", i);
+            for (int j = 0; j < Dim; j++) {
+                printf("%.2f", centroids[i][j]);
+                if (j < Dim - 1) printf(", ");
+            }
+            printf(")\n");
+        }
+        
+        // Kiem tra dieu kien dung (centroids khong thay doi dang ke)
+        converged = !centroids_changed(old_centroids, centroids, K, Dim);
+        
+    }
+    return 0;
+}
